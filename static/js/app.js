@@ -36,6 +36,7 @@
     const btnDeletePost = document.getElementById("btn-delete-post");
     const btnSetCover = document.getElementById("btn-set-cover");
     const btnRemoveImage = document.getElementById("btn-remove-image");
+    const btnDownloadAll = document.getElementById("btn-download-all");
     const addImagesInput = document.getElementById("add-images-input");
 
     // ---------------------------------------------------------------
@@ -91,7 +92,7 @@
             const badgeClass = p.status === "posted" ? "badge-posted" : "badge-pending";
             const badgeText = p.status === "posted" ? "Posted" : "Pending";
             const multiIndicator = p.images.length > 1
-                ? `<span class="carousel-indicator">${p.images.length} imgs</span>`
+                ? `<span class="carousel-indicator">${p.images.length}</span>`
                 : "";
 
             return `
@@ -99,6 +100,7 @@
                     <img src="${thumbUrl(cover)}"
                          alt="Post cover"
                          loading="lazy"
+                         draggable="false"
                          onerror="this.src='/images/${cover}'">
                     <span class="badge ${badgeClass}">${badgeText}</span>
                     ${multiIndicator}
@@ -156,7 +158,7 @@
     function renderCarousel() {
         const imgs = currentPost.images;
         carouselTrack.innerHTML = imgs.map(f =>
-            `<img src="/images/${f}" alt="Post image">`
+            `<img src="/images/${f}" alt="Post image" draggable="false">`
         ).join("");
 
         // Dots
@@ -324,6 +326,12 @@
         addImagesInput.value = "";
     });
 
+    // Download all images
+    btnDownloadAll.addEventListener("click", () => {
+        if (!currentPost) return;
+        window.location.href = `/api/posts/${currentPost.id}/download`;
+    });
+
     // Carousel navigation
     carouselPrev.addEventListener("click", () => { carouselIndex--; updateCarousel(); });
     carouselNext.addEventListener("click", () => { carouselIndex++; updateCarousel(); });
@@ -378,14 +386,25 @@
     });
 
     // ---------------------------------------------------------------
-    // Drag & Drop – Grid (create new post)
+    // Drag & Drop – shared helpers
     // ---------------------------------------------------------------
     const dropOverlay = document.getElementById("drop-overlay");
-    let dragCounter = 0; // track nested dragenter/dragleave
+    let dragCounter = 0;
 
-    function hasImageFiles(dt) {
-        if (dt.types && dt.types.indexOf("Files") !== -1) return true;
-        return false;
+    // Only accept external file drops (not images dragged from within the app)
+    let internalDrag = false;
+
+    // Mark any drag starting from inside the app as internal
+    document.addEventListener("dragstart", (e) => {
+        internalDrag = true;
+    });
+    document.addEventListener("dragend", (e) => {
+        internalDrag = false;
+    });
+
+    function isExternalFileDrop(dt) {
+        if (internalDrag) return false;
+        return dt.types && dt.types.indexOf("Files") !== -1;
     }
 
     function getImageFiles(dt) {
@@ -396,10 +415,14 @@
         return files;
     }
 
-    // Show overlay when dragging files over the page (only when modal is closed)
+    // ---------------------------------------------------------------
+    // Drag & Drop – Grid (create new post)
+    // ---------------------------------------------------------------
+
+    // Show overlay when dragging external files over the page (only when modal is closed)
     document.addEventListener("dragenter", (e) => {
         if (modal.style.display !== "none") return;
-        if (!hasImageFiles(e.dataTransfer)) return;
+        if (!isExternalFileDrop(e.dataTransfer)) return;
         e.preventDefault();
         dragCounter++;
         dropOverlay.style.display = "flex";
@@ -416,6 +439,7 @@
 
     document.addEventListener("dragover", (e) => {
         if (modal.style.display !== "none") return;
+        if (internalDrag) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
     });
@@ -425,6 +449,8 @@
         e.preventDefault();
         dragCounter = 0;
         dropOverlay.style.display = "none";
+
+        if (internalDrag) return;
 
         const files = getImageFiles(e.dataTransfer);
         if (files.length === 0) return;
@@ -450,7 +476,8 @@
 
     carouselDropZone.addEventListener("dragenter", (e) => {
         if (!currentPost) return;
-        if (!hasImageFiles(e.dataTransfer)) return;
+        if (internalDrag) return;
+        if (!isExternalFileDrop(e.dataTransfer)) return;
         e.preventDefault();
         e.stopPropagation();
         carouselDragCounter++;
@@ -468,6 +495,7 @@
 
     carouselDropZone.addEventListener("dragover", (e) => {
         if (!currentPost) return;
+        if (internalDrag) return;
         e.preventDefault();
         e.stopPropagation();
         e.dataTransfer.dropEffect = "copy";
@@ -479,6 +507,7 @@
         carouselDragCounter = 0;
         carouselDropHint.style.display = "none";
         if (!currentPost) return;
+        if (internalDrag) return;
 
         const files = getImageFiles(e.dataTransfer);
         if (files.length === 0) return;

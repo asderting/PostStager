@@ -4,17 +4,19 @@ Run with: python app.py
 Opens automatically in your default browser at http://localhost:5555
 """
 
+import io
 import json
 import os
 import shutil
 import sqlite3
 import uuid
 import webbrowser
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Timer
 
-from flask import Flask, g, jsonify, render_template, request, send_from_directory
+from flask import Flask, g, jsonify, render_template, request, send_file, send_from_directory
 from PIL import Image
 
 # ---------------------------------------------------------------------------
@@ -24,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 IMAGES_DIR = DATA_DIR / "images"
 DB_PATH = DATA_DIR / "poststager.db"
-THUMBNAIL_SIZE = (400, 400)
+THUMBNAIL_SIZE = (600, 750)
 
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -305,6 +307,26 @@ def remove_image(post_id, filename):
 
     row = db.execute("SELECT * FROM posts WHERE id = ?", (post_id,)).fetchone()
     return jsonify(row_to_dict(row))
+
+
+@app.route("/api/posts/<post_id>/download")
+def download_images(post_id):
+    db = get_db()
+    row = db.execute("SELECT * FROM posts WHERE id = ?", (post_id,)).fetchone()
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+
+    images = json.loads(row["images"])
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for i, img in enumerate(images, 1):
+            img_path = IMAGES_DIR / img
+            if img_path.exists():
+                ext = Path(img).suffix or ".jpg"
+                zf.write(str(img_path), f"image_{i}{ext}")
+    buf.seek(0)
+    return send_file(buf, mimetype="application/zip", as_attachment=True,
+                     download_name=f"post_{post_id[:8]}_images.zip")
 
 
 @app.route("/images/<filename>")
