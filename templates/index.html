@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostStager</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- ===== TOP BAR ===== -->
+    <header class="topbar">
+        <h1 class="topbar-title">PostStager</h1>
+        <div class="topbar-controls">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="pending">Pending</button>
+                <button class="filter-btn" data-filter="posted">Posted</button>
+            </div>
+            <input type="text" id="search-input" class="search-input" placeholder="Search posts…">
+            <button id="new-post-btn" class="btn btn-primary">+ New Post</button>
+        </div>
+    </header>
+
+    <!-- ===== GRID ===== -->
+    <main class="grid-container">
+        <div id="posts-grid" class="posts-grid"></div>
+        <div id="empty-state" class="empty-state" style="display:none;">
+            <p>No posts yet. Click <strong>+ New Post</strong> to get started!</p>
+        </div>
+    </main>
+
+    <!-- ===== DETAIL MODAL ===== -->
+    <div id="detail-modal" class="modal-overlay" style="display:none;">
+        <div class="modal">
+            <button class="modal-close" id="modal-close">&times;</button>
+
+            <!-- Carousel -->
+            <div class="carousel">
+                <button class="carousel-btn carousel-prev" id="carousel-prev">&#8249;</button>
+                <div class="carousel-track" id="carousel-track"></div>
+                <button class="carousel-btn carousel-next" id="carousel-next">&#8250;</button>
+                <div class="carousel-dots" id="carousel-dots"></div>
+            </div>
+
+            <!-- Image management -->
+            <div class="image-actions">
+                <span class="image-counter" id="image-counter">1 / 1</span>
+                <button class="btn btn-small" id="btn-set-cover" title="Set current image as cover">Set as Cover</button>
+                <button class="btn btn-small btn-danger" id="btn-remove-image" title="Remove current image from post">Remove Image</button>
+                <label class="btn btn-small" id="btn-add-images">
+                    Add Images
+                    <input type="file" multiple accept="image/*" id="add-images-input" style="display:none;">
+                </label>
+            </div>
+
+            <!-- Text fields -->
+            <div class="detail-fields">
+                <div class="field-group">
+                    <div class="field-header">
+                        <label>Original Prompt</label>
+                        <button class="copy-btn" data-target="field-prompt">Copy</button>
+                    </div>
+                    <textarea id="field-prompt" rows="4" placeholder="Paste the original prompt here…"></textarea>
+                </div>
+                <div class="field-group">
+                    <div class="field-header">
+                        <label>Instagram Caption</label>
+                        <button class="copy-btn" data-target="field-caption">Copy</button>
+                    </div>
+                    <textarea id="field-caption" rows="4" placeholder="Write your Instagram caption…"></textarea>
+                </div>
+                <div class="field-group">
+                    <div class="field-header">
+                        <label>Notes</label>
+                        <button class="copy-btn" data-target="field-notes">Copy</button>
+                    </div>
+                    <textarea id="field-notes" rows="3" placeholder="Any notes…"></textarea>
+                </div>
+            </div>
+
+            <!-- Bottom actions -->
+            <div class="detail-actions">
+                <button class="btn btn-danger" id="btn-delete-post">Delete Post</button>
+                <div class="detail-actions-right">
+                    <button class="btn" id="btn-toggle-status">Mark as Posted</button>
+                    <button class="btn btn-primary" id="btn-save">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div id="toast" class="toast" style="display:none;"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
