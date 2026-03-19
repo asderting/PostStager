@@ -377,6 +377,132 @@
         }, 300);
     });
 
+    // ---------------------------------------------------------------
+    // Drag & Drop – Grid (create new post)
+    // ---------------------------------------------------------------
+    const dropOverlay = document.getElementById("drop-overlay");
+    let dragCounter = 0; // track nested dragenter/dragleave
+
+    function hasImageFiles(dt) {
+        if (dt.types && dt.types.indexOf("Files") !== -1) return true;
+        return false;
+    }
+
+    function getImageFiles(dt) {
+        const files = [];
+        for (const f of dt.files) {
+            if (f.type.startsWith("image/")) files.push(f);
+        }
+        return files;
+    }
+
+    // Show overlay when dragging files over the page (only when modal is closed)
+    document.addEventListener("dragenter", (e) => {
+        if (modal.style.display !== "none") return;
+        if (!hasImageFiles(e.dataTransfer)) return;
+        e.preventDefault();
+        dragCounter++;
+        dropOverlay.style.display = "flex";
+    });
+
+    document.addEventListener("dragleave", (e) => {
+        if (modal.style.display !== "none") return;
+        dragCounter--;
+        if (dragCounter <= 0) {
+            dragCounter = 0;
+            dropOverlay.style.display = "none";
+        }
+    });
+
+    document.addEventListener("dragover", (e) => {
+        if (modal.style.display !== "none") return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+    });
+
+    document.addEventListener("drop", async (e) => {
+        if (modal.style.display !== "none") return;
+        e.preventDefault();
+        dragCounter = 0;
+        dropOverlay.style.display = "none";
+
+        const files = getImageFiles(e.dataTransfer);
+        if (files.length === 0) return;
+
+        const form = new FormData();
+        for (const f of files) form.append("images", f);
+        try {
+            const newPost = await api("/api/posts", { method: "POST", body: form });
+            await loadPosts();
+            openPost(newPost.id);
+            showToast(`Post created with ${files.length} image${files.length > 1 ? "s" : ""}!`);
+        } catch (err) {
+            showToast("Error: " + err.message);
+        }
+    });
+
+    // ---------------------------------------------------------------
+    // Drag & Drop – Carousel (add images to existing post)
+    // ---------------------------------------------------------------
+    const carouselDropZone = document.getElementById("carousel-drop-zone");
+    const carouselDropHint = document.getElementById("carousel-drop-hint");
+    let carouselDragCounter = 0;
+
+    carouselDropZone.addEventListener("dragenter", (e) => {
+        if (!currentPost) return;
+        if (!hasImageFiles(e.dataTransfer)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        carouselDragCounter++;
+        carouselDropHint.style.display = "flex";
+    });
+
+    carouselDropZone.addEventListener("dragleave", (e) => {
+        e.stopPropagation();
+        carouselDragCounter--;
+        if (carouselDragCounter <= 0) {
+            carouselDragCounter = 0;
+            carouselDropHint.style.display = "none";
+        }
+    });
+
+    carouselDropZone.addEventListener("dragover", (e) => {
+        if (!currentPost) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+    });
+
+    carouselDropZone.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        carouselDragCounter = 0;
+        carouselDropHint.style.display = "none";
+        if (!currentPost) return;
+
+        const files = getImageFiles(e.dataTransfer);
+        if (files.length === 0) return;
+
+        const form = new FormData();
+        for (const f of files) form.append("images", f);
+        try {
+            currentPost = await api(`/api/posts/${currentPost.id}/images`, {
+                method: "POST",
+                body: form,
+            });
+            renderCarousel();
+            await loadPosts();
+            showToast(`${files.length} image${files.length > 1 ? "s" : ""} added!`);
+        } catch (err) {
+            showToast("Error: " + err.message);
+        }
+    });
+
+    // Prevent the page-level drop handler from firing when dropping on the modal
+    modal.addEventListener("dragenter", (e) => { e.stopPropagation(); });
+    modal.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); });
+    modal.addEventListener("drop", (e) => { e.stopPropagation(); });
+
     // --- Init ---
     loadPosts();
 })();

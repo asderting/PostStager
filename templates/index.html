@@ -21,11 +21,21 @@
         </div>
     </header>
 
+    <!-- ===== DROP ZONE (full page) ===== -->
+    <div id="drop-overlay" class="drop-overlay" style="display:none;">
+        <div class="drop-overlay-content">
+            <div class="drop-icon">+</div>
+            <p>Drop images to create a new post</p>
+        </div>
+    </div>
+
     <!-- ===== GRID ===== -->
     <main class="grid-container">
         <div id="posts-grid" class="posts-grid"></div>
         <div id="empty-state" class="empty-state" style="display:none;">
-            <p>No posts yet. Click <strong>+ New Post</strong> to get started!</p>
+            <div class="empty-state-icon">&#x1F4F7;</div>
+            <p>No posts yet.</p>
+            <p>Click <strong>+ New Post</strong> or <strong>drag &amp; drop images</strong> here to get started!</p>
         </div>
     </main>
 
@@ -35,11 +45,15 @@
             <button class="modal-close" id="modal-close">&times;</button>
 
             <!-- Carousel -->
-            <div class="carousel">
+            <div class="carousel" id="carousel-drop-zone">
                 <button class="carousel-btn carousel-prev" id="carousel-prev">&#8249;</button>
                 <div class="carousel-track" id="carousel-track"></div>
                 <button class="carousel-btn carousel-next" id="carousel-next">&#8250;</button>
                 <div class="carousel-dots" id="carousel-dots"></div>
+                <div class="carousel-drop-hint" id="carousel-drop-hint" style="display:none;">
+                    <div class="drop-icon">+</div>
+                    <p>Drop to add images</p>
+                </div>
             </div>
 
             <!-- Image management -->
