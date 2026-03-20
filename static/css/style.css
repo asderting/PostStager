@@ -194,6 +194,76 @@ body {
     color: var(--primary);
 }
 
+/* Account nav items */
+.nav-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 12px 0;
+}
+
+.nav-item-add {
+    color: var(--text-muted) !important;
+    font-style: normal;
+}
+
+.nav-item-add:hover {
+    color: var(--primary-hover) !important;
+}
+
+.account-item {
+    position: relative;
+}
+
+.account-item .account-actions {
+    display: none;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    gap: 2px;
+}
+
+.account-item:hover .account-actions {
+    display: flex;
+}
+
+.account-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+}
+
+.account-action-btn:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+}
+
+.account-action-btn.danger:hover {
+    color: var(--danger);
+    background: var(--danger-muted);
+}
+
+.account-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
 /* Sidebar bottom */
 .sidebar-bottom {
     padding-top: 16px;

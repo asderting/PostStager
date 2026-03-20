@@ -8,10 +8,18 @@
     // --- State ---
     let posts = [];
     let allPosts = []; // unfiltered for counts
+    let accounts = [];
     let currentFilter = "all";
     let currentSearch = "";
+    let currentAccountId = null; // null = show all accounts
     let currentPost = null;
     let carouselIndex = 0;
+
+    // Avatar colors
+    const avatarColors = [
+        "#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6",
+        "#8b5cf6", "#ef4444", "#14b8a6", "#f97316", "#06b6d4",
+    ];
 
     // --- DOM refs ---
     const grid = document.getElementById("posts-grid");
@@ -47,6 +55,10 @@
     const btnDownloadAll = document.getElementById("btn-download-all");
     const addImagesInput = document.getElementById("add-images-input");
 
+    // Account list
+    const accountList = document.getElementById("account-list");
+    const btnAddAccount = document.getElementById("btn-add-account");
+
     // Page title map
     const filterTitles = {
         all: "All Posts",
@@ -80,21 +92,150 @@
     }
 
     // ---------------------------------------------------------------
+    // Accounts
+    // ---------------------------------------------------------------
+    function getAvatarColor(index) {
+        return avatarColors[index % avatarColors.length];
+    }
+
+    async function loadAccounts() {
+        accounts = await api("/api/accounts");
+        renderAccountList();
+    }
+
+    function renderAccountList() {
+        accountList.innerHTML = accounts.map((acc, i) => {
+            const active = currentAccountId === acc.id ? "active" : "";
+            const initial = acc.name.charAt(0);
+            const color = getAvatarColor(i);
+            return `
+                <div class="account-item">
+                    <button class="nav-item ${active}" data-account-id="${acc.id}">
+                        <span class="account-avatar" style="background:${color}">${initial}</span>
+                        <span>${acc.name.replace(/</g, "&lt;")}</span>
+                    </button>
+                    <div class="account-actions">
+                        <button class="account-action-btn" data-rename="${acc.id}" title="Rename">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button class="account-action-btn danger" data-delete-account="${acc.id}" title="Delete">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                </div>`;
+        }).join("");
+
+        // Account click handlers
+        accountList.querySelectorAll(".nav-item[data-account-id]").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const id = btn.dataset.accountId;
+                if (currentAccountId === id) {
+                    // Deselect: go back to all
+                    currentAccountId = null;
+                } else {
+                    currentAccountId = id;
+                }
+                updateActiveStates();
+                loadPosts();
+            });
+        });
+
+        // Rename handlers
+        accountList.querySelectorAll("[data-rename]").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.rename;
+                const acc = accounts.find(a => a.id === id);
+                if (!acc) return;
+                const name = prompt("Rename account:", acc.name);
+                if (!name || !name.trim()) return;
+                try {
+                    await api(`/api/accounts/${id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: name.trim() }),
+                    });
+                    await loadAccounts();
+                    showToast("Account renamed!");
+                } catch (err) {
+                    showToast("Error: " + err.message);
+                }
+            });
+        });
+
+        // Delete handlers
+        accountList.querySelectorAll("[data-delete-account]").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.deleteAccount;
+                const acc = accounts.find(a => a.id === id);
+                if (!acc) return;
+                if (!confirm(`Delete account "${acc.name}" and all its posts? This cannot be undone.`)) return;
+                try {
+                    await api(`/api/accounts/${id}`, { method: "DELETE" });
+                    if (currentAccountId === id) currentAccountId = null;
+                    await loadAccounts();
+                    await loadPosts();
+                    showToast("Account deleted");
+                } catch (err) {
+                    showToast("Error: " + err.message);
+                }
+            });
+        });
+    }
+
+    function updateActiveStates() {
+        // Update filter nav items
+        document.querySelectorAll(".sidebar-nav > .nav-item[data-filter]").forEach(b => {
+            b.classList.toggle("active", currentAccountId === null && b.dataset.filter === currentFilter);
+        });
+
+        // Update account nav items
+        accountList.querySelectorAll(".nav-item[data-account-id]").forEach(b => {
+            b.classList.toggle("active", b.dataset.accountId === currentAccountId);
+        });
+    }
+
+    // Add account
+    btnAddAccount.addEventListener("click", async () => {
+        const name = prompt("Account name (e.g. @myaccount):");
+        if (!name || !name.trim()) return;
+        try {
+            await api("/api/accounts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name.trim() }),
+            });
+            await loadAccounts();
+            showToast("Account added!");
+        } catch (err) {
+            showToast("Error: " + err.message);
+        }
+    });
+
+    // ---------------------------------------------------------------
     // Grid rendering
     // ---------------------------------------------------------------
     async function loadPosts() {
-        // Always load all posts for counts
-        allPosts = await api("/api/posts");
+        const params = new URLSearchParams();
+        if (currentAccountId) params.set("account_id", currentAccountId);
+
+        // Always load all posts for this account for counts
+        allPosts = await api(`/api/posts?${params}`);
         updateCounts();
 
-        const params = new URLSearchParams();
         if (currentFilter !== "all") params.set("status", currentFilter);
         if (currentSearch) params.set("search", currentSearch);
         posts = await api(`/api/posts?${params}`);
         renderGrid();
 
-        // Update page title and count
-        pageTitle.textContent = filterTitles[currentFilter] || "All Posts";
+        // Update page title
+        if (currentAccountId) {
+            const acc = accounts.find(a => a.id === currentAccountId);
+            pageTitle.textContent = acc ? acc.name : "Account";
+        } else {
+            pageTitle.textContent = filterTitles[currentFilter] || "All Posts";
+        }
         postCountLabel.textContent = posts.length === 1 ? "1 post" : `${posts.length} posts`;
     }
 
@@ -247,6 +388,7 @@
             if (!input.files.length) return;
             const form = new FormData();
             for (const f of input.files) form.append("images", f);
+            if (currentAccountId) form.append("account_id", currentAccountId);
             try {
                 const newPost = await api("/api/posts", { method: "POST", body: form });
                 await loadPosts();
@@ -406,12 +548,12 @@
         }
     });
 
-    // Sidebar navigation
-    document.querySelectorAll(".nav-item").forEach(btn => {
+    // Sidebar navigation (filter buttons)
+    document.querySelectorAll(".sidebar-nav > .nav-item[data-filter]").forEach(btn => {
         btn.addEventListener("click", () => {
-            document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
+            currentAccountId = null;
             currentFilter = btn.dataset.filter;
+            updateActiveStates();
             loadPosts();
         });
     });
@@ -490,6 +632,7 @@
 
         const form = new FormData();
         for (const f of files) form.append("images", f);
+        if (currentAccountId) form.append("account_id", currentAccountId);
         try {
             const newPost = await api("/api/posts", { method: "POST", body: form });
             await loadPosts();
@@ -566,5 +709,5 @@
     modal.addEventListener("drop", (e) => { e.stopPropagation(); });
 
     // --- Init ---
-    loadPosts();
+    loadAccounts().then(() => loadPosts());
 })();

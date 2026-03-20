@@ -57,8 +57,18 @@ def init_db():
     db = sqlite3.connect(str(DB_PATH))
     db.execute(
         """
+        CREATE TABLE IF NOT EXISTS accounts (
+            id         TEXT PRIMARY KEY,
+            name       TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS posts (
             id            TEXT PRIMARY KEY,
+            account_id    TEXT,
             status        TEXT NOT NULL DEFAULT 'pending',
             created_at    TEXT NOT NULL,
             updated_at    TEXT NOT NULL,
@@ -66,10 +76,16 @@ def init_db():
             instagram_caption  TEXT NOT NULL DEFAULT '',
             notes              TEXT NOT NULL DEFAULT '',
             images        TEXT NOT NULL DEFAULT '[]',
-            cover_index   INTEGER NOT NULL DEFAULT 0
+            cover_index   INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
         )
         """
     )
+    # Migration: add account_id column if missing (existing databases)
+    try:
+        db.execute("SELECT account_id FROM posts LIMIT 1")
+    except sqlite3.OperationalError:
+        db.execute("ALTER TABLE posts ADD COLUMN account_id TEXT REFERENCES accounts(id) ON DELETE CASCADE")
     db.commit()
     db.close()
 
@@ -117,15 +133,86 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/api/accounts", methods=["GET"])
+def list_accounts():
+    db = get_db()
+    rows = db.execute("SELECT * FROM accounts ORDER BY created_at ASC").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/accounts", methods=["POST"])
+def create_account():
+    data = request.get_json()
+    name = (data or {}).get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Account name is required"}), 400
+
+    now = datetime.now(timezone.utc).isoformat()
+    account_id = uuid.uuid4().hex
+    db = get_db()
+    db.execute(
+        "INSERT INTO accounts (id, name, created_at) VALUES (?, ?, ?)",
+        (account_id, name, now),
+    )
+    db.commit()
+    row = db.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
+    return jsonify(dict(row)), 201
+
+
+@app.route("/api/accounts/<account_id>", methods=["PUT"])
+def update_account(account_id):
+    db = get_db()
+    row = db.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+    data = request.get_json()
+    name = (data or {}).get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Account name is required"}), 400
+    db.execute("UPDATE accounts SET name = ? WHERE id = ?", (name, account_id))
+    db.commit()
+    row = db.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
+    return jsonify(dict(row))
+
+
+@app.route("/api/accounts/<account_id>", methods=["DELETE"])
+def delete_account(account_id):
+    db = get_db()
+    row = db.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+
+    # Delete all images for posts in this account
+    posts = db.execute("SELECT images FROM posts WHERE account_id = ?", (account_id,)).fetchall()
+    for p in posts:
+        images = json.loads(p["images"])
+        for img in images:
+            for path in [IMAGES_DIR / img, IMAGES_DIR / f"thumb_{Path(img).stem}.jpg"]:
+                try:
+                    path.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+    db.execute("DELETE FROM posts WHERE account_id = ?", (account_id,))
+    db.execute("DELETE FROM accounts WHERE id = ?", (account_id,))
+    db.commit()
+    return jsonify({"ok": True})
+
+
 @app.route("/api/posts", methods=["GET"])
 def list_posts():
     status = request.args.get("status", "all")
     search = request.args.get("search", "").strip()
+    account_id = request.args.get("account_id", "").strip()
     db = get_db()
 
     query = "SELECT * FROM posts"
     params = []
     conditions = []
+
+    if account_id:
+        conditions.append("account_id = ?")
+        params.append(account_id)
 
     if status in ("pending", "posted"):
         conditions.append("status = ?")
@@ -160,14 +247,15 @@ def create_post():
     if not filenames:
         return jsonify({"error": "No valid images uploaded"}), 400
 
+    account_id = request.form.get("account_id") or None
     now = datetime.now(timezone.utc).isoformat()
     post_id = uuid.uuid4().hex
 
     db = get_db()
     db.execute(
-        """INSERT INTO posts (id, status, created_at, updated_at, images)
-           VALUES (?, 'pending', ?, ?, ?)""",
-        (post_id, now, now, json.dumps(filenames)),
+        """INSERT INTO posts (id, account_id, status, created_at, updated_at, images)
+           VALUES (?, ?, 'pending', ?, ?, ?)""",
+        (post_id, account_id, now, now, json.dumps(filenames)),
     )
     db.commit()
 
