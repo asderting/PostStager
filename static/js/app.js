@@ -1,5 +1,5 @@
 /* ============================================================
-   PostStager – Frontend Logic
+   PostStager – Frontend Logic (Redesigned UI)
    ============================================================ */
 
 (function () {
@@ -7,9 +7,10 @@
 
     // --- State ---
     let posts = [];
+    let allPosts = []; // unfiltered for counts
     let currentFilter = "all";
     let currentSearch = "";
-    let currentPost = null;   // post object open in modal
+    let currentPost = null;
     let carouselIndex = 0;
 
     // --- DOM refs ---
@@ -17,6 +18,13 @@
     const emptyState = document.getElementById("empty-state");
     const modal = document.getElementById("detail-modal");
     const searchInput = document.getElementById("search-input");
+    const pageTitle = document.getElementById("page-title");
+    const postCountLabel = document.getElementById("post-count-label");
+
+    // Counters
+    const countAll = document.getElementById("count-all");
+    const countPending = document.getElementById("count-pending");
+    const countPosted = document.getElementById("count-posted");
 
     // Carousel
     const carouselTrack = document.getElementById("carousel-track");
@@ -39,6 +47,13 @@
     const btnDownloadAll = document.getElementById("btn-download-all");
     const addImagesInput = document.getElementById("add-images-input");
 
+    // Page title map
+    const filterTitles = {
+        all: "All Posts",
+        pending: "Pending",
+        posted: "Posted",
+    };
+
     // ---------------------------------------------------------------
     // API helpers
     // ---------------------------------------------------------------
@@ -57,8 +72,9 @@
     let toastTimer = null;
     function showToast(msg) {
         const t = document.getElementById("toast");
-        t.textContent = msg;
-        t.style.display = "block";
+        const textEl = document.getElementById("toast-text");
+        textEl.textContent = msg;
+        t.style.display = "flex";
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => { t.style.display = "none"; }, 2200);
     }
@@ -67,11 +83,27 @@
     // Grid rendering
     // ---------------------------------------------------------------
     async function loadPosts() {
+        // Always load all posts for counts
+        allPosts = await api("/api/posts");
+        updateCounts();
+
         const params = new URLSearchParams();
         if (currentFilter !== "all") params.set("status", currentFilter);
         if (currentSearch) params.set("search", currentSearch);
         posts = await api(`/api/posts?${params}`);
         renderGrid();
+
+        // Update page title and count
+        pageTitle.textContent = filterTitles[currentFilter] || "All Posts";
+        postCountLabel.textContent = posts.length === 1 ? "1 post" : `${posts.length} posts`;
+    }
+
+    function updateCounts() {
+        const pending = allPosts.filter(p => p.status === "pending").length;
+        const posted = allPosts.filter(p => p.status === "posted").length;
+        countAll.textContent = allPosts.length;
+        countPending.textContent = pending;
+        countPosted.textContent = posted;
     }
 
     function thumbUrl(filename) {
@@ -79,10 +111,15 @@
         return `/images/thumb_${stem}.jpg`;
     }
 
+    function truncate(text, maxLen) {
+        if (!text || text.length <= maxLen) return text || "";
+        return text.substring(0, maxLen).trim() + "...";
+    }
+
     function renderGrid() {
         if (posts.length === 0) {
             grid.innerHTML = "";
-            emptyState.style.display = "block";
+            emptyState.style.display = "flex";
             return;
         }
         emptyState.style.display = "none";
@@ -94,6 +131,10 @@
             const multiIndicator = p.images.length > 1
                 ? `<span class="carousel-indicator">${p.images.length}</span>`
                 : "";
+            const caption = truncate(p.instagram_caption, 60);
+            const captionHtml = caption
+                ? `<div class="tile-caption">${caption.replace(/</g, "&lt;")}</div>`
+                : "";
 
             return `
                 <div class="grid-tile" data-id="${p.id}">
@@ -104,6 +145,7 @@
                          onerror="this.src='/images/${cover}'">
                     <span class="badge ${badgeClass}">${badgeText}</span>
                     ${multiIndicator}
+                    ${captionHtml}
                 </div>`;
         }).join("");
 
@@ -120,15 +162,12 @@
         currentPost = posts.find(p => p.id === id);
         if (!currentPost) return;
 
-        // Populate fields
         fieldPrompt.value = currentPost.original_prompt;
         fieldCaption.value = currentPost.instagram_caption;
         fieldNotes.value = currentPost.notes;
 
-        // Status button
         updateStatusButton();
 
-        // Carousel
         carouselIndex = currentPost.cover_index || 0;
         renderCarousel();
 
@@ -146,9 +185,11 @@
         if (currentPost.status === "posted") {
             btnToggleStatus.textContent = "Mark as Pending";
             btnToggleStatus.classList.add("btn-primary");
+            btnToggleStatus.classList.remove("btn-secondary");
         } else {
             btnToggleStatus.textContent = "Mark as Posted";
             btnToggleStatus.classList.remove("btn-primary");
+            btnToggleStatus.classList.add("btn-secondary");
         }
     }
 
@@ -161,7 +202,6 @@
             `<img src="/images/${f}" alt="Post image" draggable="false">`
         ).join("");
 
-        // Dots
         carouselDots.innerHTML = imgs.map((_, i) =>
             `<button class="carousel-dot ${i === carouselIndex ? 'active' : ''}" data-i="${i}"></button>`
         ).join("");
@@ -174,7 +214,6 @@
 
         updateCarousel();
 
-        // Hide arrows if single image
         const single = imgs.length <= 1;
         carouselPrev.style.display = single ? "none" : "";
         carouselNext.style.display = single ? "none" : "";
@@ -189,7 +228,6 @@
         carouselTrack.style.transform = `translateX(-${carouselIndex * 100}%)`;
         imageCounter.textContent = `${carouselIndex + 1} / ${imgs.length}`;
 
-        // Update dots
         carouselDots.querySelectorAll(".carousel-dot").forEach((dot, i) => {
             dot.classList.toggle("active", i === carouselIndex);
         });
@@ -342,12 +380,15 @@
             const target = document.getElementById(btn.dataset.target);
             if (!target) return;
             navigator.clipboard.writeText(target.value).then(() => {
-                btn.textContent = "Copied!";
-                btn.classList.add("copied");
-                setTimeout(() => {
-                    btn.textContent = "Copy";
-                    btn.classList.remove("copied");
-                }, 1500);
+                const span = btn.querySelector("span");
+                if (span) {
+                    span.textContent = "Copied!";
+                    btn.classList.add("copied");
+                    setTimeout(() => {
+                        span.textContent = "Copy";
+                        btn.classList.remove("copied");
+                    }, 1500);
+                }
             });
         });
     });
@@ -365,10 +406,10 @@
         }
     });
 
-    // Filter buttons
-    document.querySelectorAll(".filter-btn").forEach(btn => {
+    // Sidebar navigation
+    document.querySelectorAll(".nav-item").forEach(btn => {
         btn.addEventListener("click", () => {
-            document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+            document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             currentFilter = btn.dataset.filter;
             loadPosts();
@@ -391,16 +432,10 @@
     const dropOverlay = document.getElementById("drop-overlay");
     let dragCounter = 0;
 
-    // Only accept external file drops (not images dragged from within the app)
     let internalDrag = false;
 
-    // Mark any drag starting from inside the app as internal
-    document.addEventListener("dragstart", (e) => {
-        internalDrag = true;
-    });
-    document.addEventListener("dragend", (e) => {
-        internalDrag = false;
-    });
+    document.addEventListener("dragstart", () => { internalDrag = true; });
+    document.addEventListener("dragend", () => { internalDrag = false; });
 
     function isExternalFileDrop(dt) {
         if (internalDrag) return false;
@@ -418,8 +453,6 @@
     // ---------------------------------------------------------------
     // Drag & Drop – Grid (create new post)
     // ---------------------------------------------------------------
-
-    // Show overlay when dragging external files over the page (only when modal is closed)
     document.addEventListener("dragenter", (e) => {
         if (modal.style.display !== "none") return;
         if (!isExternalFileDrop(e.dataTransfer)) return;
@@ -428,7 +461,7 @@
         dropOverlay.style.display = "flex";
     });
 
-    document.addEventListener("dragleave", (e) => {
+    document.addEventListener("dragleave", () => {
         if (modal.style.display !== "none") return;
         dragCounter--;
         if (dragCounter <= 0) {
@@ -527,7 +560,7 @@
         }
     });
 
-    // Prevent the page-level drop handler from firing when dropping on the modal
+    // Prevent page-level drop handler from firing on modal
     modal.addEventListener("dragenter", (e) => { e.stopPropagation(); });
     modal.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); });
     modal.addEventListener("drop", (e) => { e.stopPropagation(); });

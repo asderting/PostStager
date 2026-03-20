@@ -7,105 +7,221 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <!-- ===== TOP BAR ===== -->
-    <header class="topbar">
-        <h1 class="topbar-title">PostStager</h1>
-        <div class="topbar-controls">
-            <div class="filter-group">
-                <button class="filter-btn active" data-filter="all">All</button>
-                <button class="filter-btn" data-filter="pending">Pending</button>
-                <button class="filter-btn" data-filter="posted">Posted</button>
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar">
+        <div class="sidebar-top">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="4"/>
+                        <circle cx="12" cy="12" r="4"/>
+                        <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
+                    </svg>
+                </div>
+                <span class="logo-text">PostStager</span>
             </div>
-            <input type="text" id="search-input" class="search-input" placeholder="Search posts…">
-            <button id="new-post-btn" class="btn btn-primary">+ New Post</button>
+            <button id="new-post-btn" class="btn btn-primary btn-new-post">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                New Post
+            </button>
         </div>
-    </header>
 
-    <!-- ===== DROP ZONE (full page) ===== -->
-    <div id="drop-overlay" class="drop-overlay" style="display:none;">
-        <div class="drop-overlay-content">
-            <div class="drop-icon">+</div>
-            <p>Drop images to create a new post</p>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Library</div>
+            <button class="nav-item active" data-filter="all">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
+                <span>All Posts</span>
+                <span class="nav-count" id="count-all">0</span>
+            </button>
+            <button class="nav-item" data-filter="pending">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>Pending</span>
+                <span class="nav-count" id="count-pending">0</span>
+            </button>
+            <button class="nav-item" data-filter="posted">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span>Posted</span>
+                <span class="nav-count" id="count-posted">0</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-info">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                </svg>
+                100% Local &middot; No Cloud
+            </div>
         </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="main-wrapper">
+        <!-- Top bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <h2 class="page-title" id="page-title">All Posts</h2>
+                <span class="post-count-label" id="post-count-label"></span>
+            </div>
+            <div class="topbar-right">
+                <div class="search-wrapper">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" id="search-input" class="search-input" placeholder="Search posts...">
+                </div>
+            </div>
+        </header>
+
+        <!-- ===== DROP ZONE (full page) ===== -->
+        <div id="drop-overlay" class="drop-overlay" style="display:none;">
+            <div class="drop-overlay-content">
+                <div class="drop-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </div>
+                <p class="drop-title">Drop images to create a new post</p>
+                <p class="drop-subtitle">Supports JPG, PNG, WebP</p>
+            </div>
+        </div>
+
+        <!-- ===== GRID ===== -->
+        <main class="grid-container">
+            <div id="posts-grid" class="posts-grid"></div>
+            <div id="empty-state" class="empty-state" style="display:none;">
+                <div class="empty-state-visual">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="4"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                </div>
+                <h3 class="empty-title">No posts yet</h3>
+                <p class="empty-description">Get started by clicking <strong>New Post</strong> or dragging images here.</p>
+            </div>
+        </main>
     </div>
-
-    <!-- ===== GRID ===== -->
-    <main class="grid-container">
-        <div id="posts-grid" class="posts-grid"></div>
-        <div id="empty-state" class="empty-state" style="display:none;">
-            <div class="empty-state-icon">&#x1F4F7;</div>
-            <p>No posts yet.</p>
-            <p>Click <strong>+ New Post</strong> or <strong>drag &amp; drop images</strong> here to get started!</p>
-        </div>
-    </main>
 
     <!-- ===== DETAIL MODAL ===== -->
     <div id="detail-modal" class="modal-overlay" style="display:none;">
         <div class="modal">
-            <button class="modal-close" id="modal-close">&times;</button>
+            <button class="modal-close" id="modal-close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
 
-            <!-- Carousel -->
-            <div class="carousel" id="carousel-drop-zone">
-                <button class="carousel-btn carousel-prev" id="carousel-prev">&#8249;</button>
-                <div class="carousel-track" id="carousel-track"></div>
-                <button class="carousel-btn carousel-next" id="carousel-next">&#8250;</button>
-                <div class="carousel-dots" id="carousel-dots"></div>
-                <div class="carousel-drop-hint" id="carousel-drop-hint" style="display:none;">
-                    <div class="drop-icon">+</div>
-                    <p>Drop to add images</p>
-                </div>
-            </div>
-
-            <!-- Image management -->
-            <div class="image-actions">
-                <span class="image-counter" id="image-counter">1 / 1</span>
-                <button class="btn btn-small" id="btn-set-cover" title="Set current image as cover">Set as Cover</button>
-                <button class="btn btn-small btn-danger" id="btn-remove-image" title="Remove current image from post">Remove Image</button>
-                <button class="btn btn-small btn-download" id="btn-download-all" title="Download all images as ZIP">Download All</button>
-                <label class="btn btn-small" id="btn-add-images">
-                    Add Images
-                    <input type="file" multiple accept="image/*" id="add-images-input" style="display:none;">
-                </label>
-            </div>
-
-            <!-- Text fields -->
-            <div class="detail-fields">
-                <div class="field-group">
-                    <div class="field-header">
-                        <label>Original Prompt</label>
-                        <button class="copy-btn" data-target="field-prompt">Copy</button>
+            <div class="modal-body">
+                <!-- Left: Carousel -->
+                <div class="modal-left">
+                    <div class="carousel" id="carousel-drop-zone">
+                        <button class="carousel-btn carousel-prev" id="carousel-prev">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <div class="carousel-track" id="carousel-track"></div>
+                        <button class="carousel-btn carousel-next" id="carousel-next">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <div class="carousel-dots" id="carousel-dots"></div>
+                        <div class="carousel-drop-hint" id="carousel-drop-hint" style="display:none;">
+                            <div class="drop-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                            </div>
+                            <p>Drop to add images</p>
+                        </div>
                     </div>
-                    <textarea id="field-prompt" rows="4" placeholder="Paste the original prompt here…"></textarea>
-                </div>
-                <div class="field-group">
-                    <div class="field-header">
-                        <label>Instagram Caption</label>
-                        <button class="copy-btn" data-target="field-caption">Copy</button>
+                    <!-- Image management -->
+                    <div class="image-actions">
+                        <span class="image-counter" id="image-counter">1 / 1</span>
+                        <div class="image-actions-btns">
+                            <button class="btn-icon" id="btn-set-cover" title="Set current image as cover">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                <span>Cover</span>
+                            </button>
+                            <button class="btn-icon btn-icon-danger" id="btn-remove-image" title="Remove current image">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                <span>Remove</span>
+                            </button>
+                            <button class="btn-icon" id="btn-download-all" title="Download all images as ZIP">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                <span>Download</span>
+                            </button>
+                            <label class="btn-icon" id="btn-add-images" title="Add more images">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <span>Add</span>
+                                <input type="file" multiple accept="image/*" id="add-images-input" style="display:none;">
+                            </label>
+                        </div>
                     </div>
-                    <textarea id="field-caption" rows="4" placeholder="Write your Instagram caption…"></textarea>
                 </div>
-                <div class="field-group">
-                    <div class="field-header">
-                        <label>Notes</label>
-                        <button class="copy-btn" data-target="field-notes">Copy</button>
-                    </div>
-                    <textarea id="field-notes" rows="3" placeholder="Any notes…"></textarea>
-                </div>
-            </div>
 
-            <!-- Bottom actions -->
-            <div class="detail-actions">
-                <button class="btn btn-danger" id="btn-delete-post">Delete Post</button>
-                <div class="detail-actions-right">
-                    <button class="btn" id="btn-toggle-status">Mark as Posted</button>
-                    <button class="btn btn-primary" id="btn-save">Save</button>
+                <!-- Right: Fields -->
+                <div class="modal-right">
+                    <div class="detail-fields">
+                        <div class="field-group">
+                            <div class="field-header">
+                                <label>Original Prompt</label>
+                                <button class="copy-btn" data-target="field-prompt">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <textarea id="field-prompt" rows="4" placeholder="Paste the original prompt here..."></textarea>
+                        </div>
+                        <div class="field-group">
+                            <div class="field-header">
+                                <label>Instagram Caption</label>
+                                <button class="copy-btn" data-target="field-caption">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <textarea id="field-caption" rows="4" placeholder="Write your Instagram caption..."></textarea>
+                        </div>
+                        <div class="field-group">
+                            <div class="field-header">
+                                <label>Notes</label>
+                                <button class="copy-btn" data-target="field-notes">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <textarea id="field-notes" rows="3" placeholder="Any notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Bottom actions -->
+                    <div class="detail-actions">
+                        <button class="btn btn-danger-ghost" id="btn-delete-post">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            Delete
+                        </button>
+                        <div class="detail-actions-right">
+                            <button class="btn btn-secondary" id="btn-toggle-status">Mark as Posted</button>
+                            <button class="btn btn-primary" id="btn-save">Save</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- ===== TOAST ===== -->
-    <div id="toast" class="toast" style="display:none;"></div>
+    <div id="toast" class="toast" style="display:none;">
+        <svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span id="toast-text"></span>
+    </div>
 
     <script src="/static/js/app.js"></script>
 </body>
