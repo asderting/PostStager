@@ -199,7 +199,7 @@
     function renderCarousel() {
         const imgs = currentPost.images;
         carouselTrack.innerHTML = imgs.map(f =>
-            `<img src="/images/${f}" alt="Post image" draggable="false">`
+            `<div class="carousel-slide"><img src="/images/${f}" alt="Post image" draggable="false"></div>`
         ).join("");
 
         carouselDots.innerHTML = imgs.map((_, i) =>
