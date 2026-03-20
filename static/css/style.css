@@ -396,7 +396,7 @@ body {
 
 .posts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 320px));
     gap: 16px;
 }
 
@@ -976,7 +976,7 @@ textarea:focus {
     .main-wrapper {
         margin-left: 0;
     }
-    .posts-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .posts-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 280px)); gap: 12px; }
     /* Show a mobile-friendly top bar with filter and new post */
     .topbar {
         flex-wrap: wrap;
